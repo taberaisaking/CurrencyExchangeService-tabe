@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using Newtonsoft.Json.Linq;
 
@@ -6,6 +7,11 @@ namespace CurrencyExchangeService
 {
     public class CurrencyService : ICurrencyService
     {
+        private static Dictionary<string, string> users
+            = new Dictionary<string, string>();
+        private static Dictionary<string, double> balances
+            = new Dictionary<string, double>();
+
         public string SayHello(string name)
         {
             return "Hello " + name + "! Welcome to Currency Exchange Service.";
@@ -22,10 +28,8 @@ namespace CurrencyExchangeService
                 {
                     httpClient.DefaultRequestHeaders.Add(
                         "Accept", "application/json");
-
                     string response = httpClient
                         .GetStringAsync(url).Result;
-
                     JObject json = JObject.Parse(response);
                     double rate = json["rates"][0]["mid"]
                         .Value<double>();
@@ -34,8 +38,7 @@ namespace CurrencyExchangeService
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error fetching rate for "
-                    + currencyCode + ": " + ex.Message);
+                Console.WriteLine("Error: " + ex.Message);
                 return 0.0;
             }
         }
@@ -72,6 +75,40 @@ namespace CurrencyExchangeService
                 "USD", "EUR", "GBP", "CHF",
                 "JPY", "CAD", "AUD", "SEK"
             };
+        }
+
+        public bool RegisterUser(string username, string password)
+        {
+            if (users.ContainsKey(username))
+                return false;
+            users[username] = password;
+            balances[username] = 1000.0;
+            Console.WriteLine("New user registered: " + username);
+            return true;
+        }
+
+        public bool LoginUser(string username, string password)
+        {
+            if (!users.ContainsKey(username))
+                return false;
+            return users[username] == password;
+        }
+
+        public double GetBalance(string username)
+        {
+            if (balances.ContainsKey(username))
+                return balances[username];
+            return 0;
+        }
+
+        public bool TopUpBalance(string username, double amount)
+        {
+            if (!balances.ContainsKey(username))
+                return false;
+            balances[username] += amount;
+            Console.WriteLine(username + " topped up: "
+                + amount + " PLN");
+            return true;
         }
     }
 }
