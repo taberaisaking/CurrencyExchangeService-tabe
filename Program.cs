@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Net.Http;
 using System.ServiceModel;
+using System.ServiceModel.Description;
+using Newtonsoft.Json.Linq;
 
-namespace CurrencyExchangeClient
+namespace CurrencyExchangeService
 {
     [ServiceContract]
     public interface ICurrencyService
@@ -13,43 +16,73 @@ namespace CurrencyExchangeClient
         double GetExchangeRate(string currencyCode);
     }
 
+    public class CurrencyService : ICurrencyService
+    {
+        public string SayHello(string name)
+        {
+            return "Hello " + name + "! Welcome to Currency Exchange Service.";
+        }
+
+        public double GetExchangeRate(string currencyCode)
+        {
+            try
+            {
+                string url = "http://api.nbp.pl/api/exchangerates/rates/a/"
+                             + currencyCode + "/?format=json";
+
+                using (HttpClient httpClient = new HttpClient())
+                {
+                    httpClient.DefaultRequestHeaders.Add(
+                        "Accept", "application/json");
+
+                    string response = httpClient
+                        .GetStringAsync(url).Result;
+
+                    JObject json = JObject.Parse(response);
+                    double rate = json["rates"][0]["mid"]
+                        .Value<double>();
+                    return rate;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error fetching rate for "
+                    + currencyCode + ": " + ex.Message);
+                return 0.0;
+            }
+        }
+    }
+
     class Program
     {
         static void Main(string[] args)
         {
-            EndpointAddress address = new EndpointAddress(
+            Uri baseAddress = new Uri(
                 "http://localhost:8080/CurrencyExchangeService");
 
-            BasicHttpBinding binding = new BasicHttpBinding();
+            ServiceHost host = new ServiceHost(
+                typeof(CurrencyService), baseAddress);
 
-            ChannelFactory<ICurrencyService> factory =
-                new ChannelFactory<ICurrencyService>(binding, address);
+            ServiceMetadataBehavior smb = new ServiceMetadataBehavior();
+            smb.HttpGetEnabled = true;
+            host.Description.Behaviors.Add(smb);
 
-            ICurrencyService client = factory.CreateChannel();
+            host.AddServiceEndpoint(
+                typeof(ICurrencyService),
+                new BasicHttpBinding(),
+                "");
+
+            host.Open();
 
             Console.WriteLine("======================================");
-            Console.WriteLine("     Currency Exchange Client         ");
+            Console.WriteLine(" CurrencyExchange WCF Service Running ");
             Console.WriteLine("======================================");
-
-            Console.WriteLine("\n--- Testing SayHello ---");
-            string greeting = client.SayHello("Student");
-            Console.WriteLine(greeting);
-
-            Console.WriteLine("\n--- Live Exchange Rates from NBP ---");
-            string[] currencies = { "USD", "EUR", "GBP", "CHF", "JPY" };
-            foreach (string currency in currencies)
-            {
-                double rate = client.GetExchangeRate(currency);
-                if (rate > 0)
-                    Console.WriteLine("1 " + currency + " = " + rate + " PLN");
-                else
-                    Console.WriteLine(currency + ": Rate not available");
-            }
-
-            factory.Close();
-
-            Console.WriteLine("\nPress ENTER to exit...");
+            Console.WriteLine("URL: http://localhost:8080/CurrencyExchangeService");
+            Console.WriteLine("Fetching REAL rates from NBP API...");
+            Console.WriteLine("Press ENTER to stop the service...");
             Console.ReadLine();
+
+            host.Close();
         }
     }
 }
