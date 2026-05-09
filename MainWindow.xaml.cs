@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ServiceModel;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace CurrencyExchangeWPF
@@ -21,18 +22,31 @@ namespace CurrencyExchangeWPF
 
         [OperationContract]
         string[] GetAvailableCurrencies();
+
+        [OperationContract]
+        bool RegisterUser(string username, string password);
+
+        [OperationContract]
+        bool LoginUser(string username, string password);
+
+        [OperationContract]
+        double GetBalance(string username);
+
+        [OperationContract]
+        bool TopUpBalance(string username, double amount);
     }
 
     public partial class MainWindow : Window
     {
         private ICurrencyService client;
+        private string loggedInUser = null;
 
         public MainWindow()
         {
             InitializeComponent();
             ConnectToService();
             LoadCurrencies();
-            LoadExchangeRates();
+            LoadExchangeRatesAsync();
         }
 
         private void ConnectToService()
@@ -42,6 +56,8 @@ namespace CurrencyExchangeWPF
                 EndpointAddress address = new EndpointAddress(
                     "http://localhost:8080/CurrencyExchangeService");
                 BasicHttpBinding binding = new BasicHttpBinding();
+                binding.SendTimeout = TimeSpan.FromSeconds(30);
+                binding.ReceiveTimeout = TimeSpan.FromSeconds(30);
                 ChannelFactory<ICurrencyService> factory =
                     new ChannelFactory<ICurrencyService>(binding, address);
                 client = factory.CreateChannel();
@@ -75,14 +91,18 @@ namespace CurrencyExchangeWPF
             }
         }
 
-        private void LoadExchangeRates()
+        private async void LoadExchangeRatesAsync()
         {
             try
             {
+                RatesListBox.Items.Add("Loading rates...");
                 string[] currencies = client.GetAvailableCurrencies();
+                RatesListBox.Items.Clear();
+
                 foreach (string currency in currencies)
                 {
-                    double rate = client.GetExchangeRate(currency);
+                    double rate = await Task.Run(() =>
+                        client.GetExchangeRate(currency));
                     RatesListBox.Items.Add(
                         "1 " + currency + " = " + rate + " PLN");
                 }
@@ -93,19 +113,129 @@ namespace CurrencyExchangeWPF
             }
         }
 
-        private void ExchangeButton_Click(object sender,
+        private void RegisterButton_Click(object sender,
             RoutedEventArgs e)
         {
             try
             {
+                string username = UsernameTextBox.Text.Trim();
+                string password = PasswordBox.Password;
+
+                if (string.IsNullOrEmpty(username) ||
+                    string.IsNullOrEmpty(password))
+                {
+                    AccountStatusText.Text =
+                        "Please enter username and password!";
+                    return;
+                }
+
+                bool success = client.RegisterUser(username, password);
+                if (success)
+                {
+                    AccountStatusText.Foreground =
+                        System.Windows.Media.Brushes.Green;
+                    AccountStatusText.Text =
+                        "Registration successful! Please login.";
+                }
+                else
+                {
+                    AccountStatusText.Foreground =
+                        System.Windows.Media.Brushes.Red;
+                    AccountStatusText.Text =
+                        "Username already exists!";
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Registration error: " + ex.Message);
+            }
+        }
+
+        private void LoginButton_Click(object sender,
+            RoutedEventArgs e)
+        {
+            try
+            {
+                string username = UsernameTextBox.Text.Trim();
+                string password = PasswordBox.Password;
+
+                bool success = client.LoginUser(username, password);
+                if (success)
+                {
+                    loggedInUser = username;
+                    double balance = client.GetBalance(username);
+                    AccountStatusText.Foreground =
+                        System.Windows.Media.Brushes.Green;
+                    AccountStatusText.Text =
+                        "Welcome " + username + "!";
+                    BalanceText.Text =
+                        "Balance: " + balance + " PLN";
+                }
+                else
+                {
+                    AccountStatusText.Foreground =
+                        System.Windows.Media.Brushes.Red;
+                    AccountStatusText.Text =
+                        "Invalid username or password!";
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Login error: " + ex.Message);
+            }
+        }
+
+        private void TopUpButton_Click(object sender,
+            RoutedEventArgs e)
+        {
+            try
+            {
+                if (loggedInUser == null)
+                {
+                    MessageBox.Show("Please login first!");
+                    return;
+                }
+
+                double amount = double.Parse(TopUpTextBox.Text);
+                bool success = client.TopUpBalance(
+                    loggedInUser, amount);
+
+                if (success)
+                {
+                    double balance = client.GetBalance(loggedInUser);
+                    BalanceText.Text =
+                        "Balance: " + balance + " PLN";
+                    MessageBox.Show("Top up successful!");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Top up error: " + ex.Message);
+            }
+        }
+
+        private async void ExchangeButton_Click(object sender,
+            RoutedEventArgs e)
+        {
+            try
+            {
+                if (loggedInUser == null)
+                {
+                    MessageBox.Show("Please login first!");
+                    return;
+                }
+
                 string fromCurrency = FromCurrencyCombo
                     .SelectedItem.ToString();
                 string toCurrency = ToCurrencyCombo
                     .SelectedItem.ToString();
                 double amount = double.Parse(AmountTextBox.Text);
 
-                double result = client.ExchangeCurrency(
-                    fromCurrency, toCurrency, amount);
+                ResultTextBlock.Text = "Calculating...";
+
+                double result = await Task.Run(() =>
+                    client.ExchangeCurrency(
+                        fromCurrency, toCurrency, amount));
 
                 ResultTextBlock.Text = amount + " " + fromCurrency
                     + " = " + result + " " + toCurrency;
