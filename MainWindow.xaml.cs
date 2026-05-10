@@ -34,6 +34,21 @@ namespace CurrencyExchangeWPF
 
         [OperationContract]
         bool TopUpBalance(string username, double amount);
+
+        [OperationContract]
+        string BuyCurrency(
+            string username,
+            string currencyCode,
+            double amount);
+
+        [OperationContract]
+        string SellCurrency(
+            string username,
+            string currencyCode,
+            double amount);
+
+        [OperationContract]
+        string[] GetTransactionHistory(string username);
     }
 
     public partial class MainWindow : Window
@@ -59,7 +74,8 @@ namespace CurrencyExchangeWPF
                 binding.SendTimeout = TimeSpan.FromSeconds(30);
                 binding.ReceiveTimeout = TimeSpan.FromSeconds(30);
                 ChannelFactory<ICurrencyService> factory =
-                    new ChannelFactory<ICurrencyService>(binding, address);
+                    new ChannelFactory<ICurrencyService>(
+                        binding, address);
                 client = factory.CreateChannel();
             }
             catch (Exception ex)
@@ -73,16 +89,22 @@ namespace CurrencyExchangeWPF
         {
             try
             {
-                string[] currencies = client.GetAvailableCurrencies();
+                string[] currencies =
+                    client.GetAvailableCurrencies();
+
                 FromCurrencyCombo.Items.Add("PLN");
                 ToCurrencyCombo.Items.Add("PLN");
+
                 foreach (string currency in currencies)
                 {
                     FromCurrencyCombo.Items.Add(currency);
                     ToCurrencyCombo.Items.Add(currency);
+                    BuySellCurrencyCombo.Items.Add(currency);
                 }
+
                 FromCurrencyCombo.SelectedIndex = 1;
                 ToCurrencyCombo.SelectedIndex = 0;
+                BuySellCurrencyCombo.SelectedIndex = 0;
             }
             catch (Exception ex)
             {
@@ -95,8 +117,10 @@ namespace CurrencyExchangeWPF
         {
             try
             {
+                RatesListBox.Items.Clear();
                 RatesListBox.Items.Add("Loading rates...");
-                string[] currencies = client.GetAvailableCurrencies();
+                string[] currencies =
+                    client.GetAvailableCurrencies();
                 RatesListBox.Items.Clear();
 
                 foreach (string currency in currencies)
@@ -109,12 +133,13 @@ namespace CurrencyExchangeWPF
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error loading rates: " + ex.Message);
+                MessageBox.Show("Error loading rates: "
+                    + ex.Message);
             }
         }
 
-        private void RegisterButton_Click(object sender,
-            RoutedEventArgs e)
+        private void RegisterButton_Click(
+            object sender, RoutedEventArgs e)
         {
             try
             {
@@ -129,7 +154,9 @@ namespace CurrencyExchangeWPF
                     return;
                 }
 
-                bool success = client.RegisterUser(username, password);
+                bool success = client.RegisterUser(
+                    username, password);
+
                 if (success)
                 {
                     AccountStatusText.Foreground =
@@ -151,15 +178,17 @@ namespace CurrencyExchangeWPF
             }
         }
 
-        private void LoginButton_Click(object sender,
-            RoutedEventArgs e)
+        private void LoginButton_Click(
+            object sender, RoutedEventArgs e)
         {
             try
             {
                 string username = UsernameTextBox.Text.Trim();
                 string password = PasswordBox.Password;
 
-                bool success = client.LoginUser(username, password);
+                bool success = client.LoginUser(
+                    username, password);
+
                 if (success)
                 {
                     loggedInUser = username;
@@ -168,8 +197,8 @@ namespace CurrencyExchangeWPF
                         System.Windows.Media.Brushes.Green;
                     AccountStatusText.Text =
                         "Welcome " + username + "!";
-                    BalanceText.Text =
-                        "Balance: " + balance + " PLN";
+                    BalanceText.Text = "Balance: "
+                        + balance + " PLN";
                 }
                 else
                 {
@@ -185,8 +214,8 @@ namespace CurrencyExchangeWPF
             }
         }
 
-        private void TopUpButton_Click(object sender,
-            RoutedEventArgs e)
+        private void TopUpButton_Click(
+            object sender, RoutedEventArgs e)
         {
             try
             {
@@ -196,15 +225,17 @@ namespace CurrencyExchangeWPF
                     return;
                 }
 
-                double amount = double.Parse(TopUpTextBox.Text);
+                double amount = double.Parse(
+                    TopUpTextBox.Text);
                 bool success = client.TopUpBalance(
                     loggedInUser, amount);
 
                 if (success)
                 {
-                    double balance = client.GetBalance(loggedInUser);
-                    BalanceText.Text =
-                        "Balance: " + balance + " PLN";
+                    double balance = client.GetBalance(
+                        loggedInUser);
+                    BalanceText.Text = "Balance: "
+                        + balance + " PLN";
                     MessageBox.Show("Top up successful!");
                 }
             }
@@ -214,8 +245,8 @@ namespace CurrencyExchangeWPF
             }
         }
 
-        private async void ExchangeButton_Click(object sender,
-            RoutedEventArgs e)
+        private async void ExchangeButton_Click(
+            object sender, RoutedEventArgs e)
         {
             try
             {
@@ -229,7 +260,8 @@ namespace CurrencyExchangeWPF
                     .SelectedItem.ToString();
                 string toCurrency = ToCurrencyCombo
                     .SelectedItem.ToString();
-                double amount = double.Parse(AmountTextBox.Text);
+                double amount = double.Parse(
+                    AmountTextBox.Text);
 
                 ResultTextBlock.Text = "Calculating...";
 
@@ -237,12 +269,125 @@ namespace CurrencyExchangeWPF
                     client.ExchangeCurrency(
                         fromCurrency, toCurrency, amount));
 
-                ResultTextBlock.Text = amount + " " + fromCurrency
-                    + " = " + result + " " + toCurrency;
+                ResultTextBlock.Text = amount + " "
+                    + fromCurrency + " = "
+                    + result + " " + toCurrency;
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Exchange error: " + ex.Message);
+            }
+        }
+
+        private async void BuyButton_Click(
+            object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (loggedInUser == null)
+                {
+                    MessageBox.Show("Please login first!");
+                    return;
+                }
+
+                string currency = BuySellCurrencyCombo
+                    .SelectedItem.ToString();
+                double amount = double.Parse(
+                    BuySellAmountTextBox.Text);
+
+                BuySellResultText.Text = "Processing...";
+
+                string result = await Task.Run(() =>
+                    client.BuyCurrency(
+                        loggedInUser, currency, amount));
+
+                BuySellResultText.Foreground =
+                    result.StartsWith("Success")
+                    ? System.Windows.Media.Brushes.Green
+                    : System.Windows.Media.Brushes.Red;
+
+                BuySellResultText.Text = result;
+
+                if (result.StartsWith("Success"))
+                {
+                    double balance = client.GetBalance(
+                        loggedInUser);
+                    BalanceText.Text = "Balance: "
+                        + balance + " PLN";
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Buy error: " + ex.Message);
+            }
+        }
+
+        private async void SellButton_Click(
+            object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (loggedInUser == null)
+                {
+                    MessageBox.Show("Please login first!");
+                    return;
+                }
+
+                string currency = BuySellCurrencyCombo
+                    .SelectedItem.ToString();
+                double amount = double.Parse(
+                    BuySellAmountTextBox.Text);
+
+                BuySellResultText.Text = "Processing...";
+
+                string result = await Task.Run(() =>
+                    client.SellCurrency(
+                        loggedInUser, currency, amount));
+
+                BuySellResultText.Foreground =
+                    result.StartsWith("Success")
+                    ? System.Windows.Media.Brushes.Green
+                    : System.Windows.Media.Brushes.Red;
+
+                BuySellResultText.Text = result;
+
+                if (result.StartsWith("Success"))
+                {
+                    double balance = client.GetBalance(
+                        loggedInUser);
+                    BalanceText.Text = "Balance: "
+                        + balance + " PLN";
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Sell error: " + ex.Message);
+            }
+        }
+
+        private void RefreshHistoryButton_Click(
+            object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (loggedInUser == null)
+                {
+                    MessageBox.Show("Please login first!");
+                    return;
+                }
+
+                HistoryListBox.Items.Clear();
+                string[] history = client.GetTransactionHistory(
+                    loggedInUser);
+
+                foreach (string record in history)
+                {
+                    HistoryListBox.Items.Add(record);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("History error: " + ex.Message);
             }
         }
     }
