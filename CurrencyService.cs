@@ -7,12 +7,6 @@ namespace CurrencyExchangeService
 {
     public class CurrencyService : ICurrencyService
     {
-        private static Dictionary<string, string> users
-            = new Dictionary<string, string>();
-        private static Dictionary<string, double> balances
-            = new Dictionary<string, double>();
-        private static Dictionary<string, List<string>> transactions
-            = new Dictionary<string, List<string>>();
         private static Dictionary<string, double> rateCache
             = new Dictionary<string, double>();
         private static DateTime lastCacheTime = DateTime.MinValue;
@@ -100,43 +94,43 @@ namespace CurrencyExchangeService
 
         public bool RegisterUser(string username, string password)
         {
-            if (users.ContainsKey(username))
-                return false;
-
-            users[username] = password;
-            balances[username] = 1000.0;
-            transactions[username] = new List<string>();
-            Console.WriteLine("New user registered: " + username);
-            return true;
+            bool success = DatabaseManager.RegisterUser(
+                username, password);
+            if (success)
+                Console.WriteLine("New user registered: "
+                    + username);
+            return success;
         }
 
         public bool LoginUser(string username, string password)
         {
-            if (!users.ContainsKey(username))
-                return false;
-            return users[username] == password;
+            return DatabaseManager.LoginUser(username, password);
         }
 
         public double GetBalance(string username)
         {
-            if (balances.ContainsKey(username))
-                return balances[username];
-            return 0;
+            return DatabaseManager.GetBalance(username);
         }
 
         public bool TopUpBalance(string username, double amount)
         {
-            if (!balances.ContainsKey(username))
-                return false;
+            double currentBalance = DatabaseManager
+                .GetBalance(username);
+            double newBalance = Math.Round(
+                currentBalance + amount, 2);
 
-            balances[username] += amount;
-            string record = DateTime.Now.ToString("yyyy-MM-dd HH:mm")
-                + " | TOP UP | +" + amount + " PLN"
-                + " | Balance: " + balances[username] + " PLN";
-            transactions[username].Add(record);
-            Console.WriteLine(username + " topped up: "
-                + amount + " PLN");
-            return true;
+            bool success = DatabaseManager.UpdateBalance(
+                username, newBalance);
+
+            if (success)
+            {
+                DatabaseManager.SaveTransaction(
+                    username, "TOP UP", "PLN",
+                    amount, amount, newBalance);
+                Console.WriteLine(username + " topped up: "
+                    + amount + " PLN");
+            }
+            return success;
         }
 
         public string BuyCurrency(
@@ -146,36 +140,33 @@ namespace CurrencyExchangeService
         {
             try
             {
-                if (!balances.ContainsKey(username))
-                    return "User not found!";
-
                 double rate = GetExchangeRate(currencyCode);
                 if (rate == 0)
                     return "Could not get exchange rate!";
 
                 double cost = Math.Round(amount * rate, 2);
+                double currentBalance = DatabaseManager
+                    .GetBalance(username);
 
-                if (balances[username] < cost)
+                if (currentBalance < cost)
                     return "Insufficient balance! Need "
                         + cost + " PLN but have "
-                        + Math.Round(balances[username], 2) + " PLN";
+                        + Math.Round(currentBalance, 2) + " PLN";
 
-                balances[username] -= cost;
-                balances[username] = Math.Round(
-                    balances[username], 2);
-
-                string record = DateTime.Now.ToString("yyyy-MM-dd HH:mm")
-                    + " | BUY | " + amount + " " + currencyCode
-                    + " for " + cost + " PLN"
-                    + " | Balance: " + balances[username] + " PLN";
-                transactions[username].Add(record);
+                double newBalance = Math.Round(
+                    currentBalance - cost, 2);
+                DatabaseManager.UpdateBalance(
+                    username, newBalance);
+                DatabaseManager.SaveTransaction(
+                    username, "BUY", currencyCode,
+                    amount, cost, newBalance);
 
                 Console.WriteLine(username + " bought "
                     + amount + " " + currencyCode);
 
                 return "Success! Bought " + amount + " "
                     + currencyCode + " for " + cost + " PLN."
-                    + " New balance: " + balances[username] + " PLN";
+                    + " New balance: " + newBalance + " PLN";
             }
             catch (Exception ex)
             {
@@ -190,31 +181,28 @@ namespace CurrencyExchangeService
         {
             try
             {
-                if (!balances.ContainsKey(username))
-                    return "User not found!";
-
                 double rate = GetExchangeRate(currencyCode);
                 if (rate == 0)
                     return "Could not get exchange rate!";
 
                 double earned = Math.Round(amount * rate, 2);
+                double currentBalance = DatabaseManager
+                    .GetBalance(username);
+                double newBalance = Math.Round(
+                    currentBalance + earned, 2);
 
-                balances[username] += earned;
-                balances[username] = Math.Round(
-                    balances[username], 2);
-
-                string record = DateTime.Now.ToString("yyyy-MM-dd HH:mm")
-                    + " | SELL | " + amount + " " + currencyCode
-                    + " for " + earned + " PLN"
-                    + " | Balance: " + balances[username] + " PLN";
-                transactions[username].Add(record);
+                DatabaseManager.UpdateBalance(
+                    username, newBalance);
+                DatabaseManager.SaveTransaction(
+                    username, "SELL", currencyCode,
+                    amount, earned, newBalance);
 
                 Console.WriteLine(username + " sold "
                     + amount + " " + currencyCode);
 
                 return "Success! Sold " + amount + " "
                     + currencyCode + " for " + earned + " PLN."
-                    + " New balance: " + balances[username] + " PLN";
+                    + " New balance: " + newBalance + " PLN";
             }
             catch (Exception ex)
             {
@@ -224,13 +212,8 @@ namespace CurrencyExchangeService
 
         public string[] GetTransactionHistory(string username)
         {
-            if (!transactions.ContainsKey(username))
-                return new string[] { "No transactions found!" };
-
-            if (transactions[username].Count == 0)
-                return new string[] { "No transactions yet!" };
-
-            return transactions[username].ToArray();
+            return DatabaseManager
+                .GetTransactionHistory(username);
         }
     }
 }
