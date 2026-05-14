@@ -47,12 +47,22 @@ namespace CurrencyExchangeService
         [OperationContract]
         string[] GetTransactionHistory(string username);
 
-        // Lab 12 - New Methods
         [OperationContract]
         string[] GetTransactionsByType(
             string username, string type);
 
         [OperationContract]
         string GetAccountSummary(string username);
+
+        // Lab 13 - Historical Rates
+        [OperationContract]
+        string[] GetHistoricalRates(
+            string currencyCode,
+            string startDate,
+            string endDate);
+
+        [OperationContract]
+        string[] GetLastDaysRates(
+            string currencyCode, int days);
     }
 }

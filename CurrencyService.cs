@@ -239,5 +239,70 @@ namespace CurrencyExchangeService
             return DatabaseManager
                 .GetAccountSummary(username);
         }
+
+        public string[] GetHistoricalRates(
+            string currencyCode,
+            string startDate,
+            string endDate)
+        {
+            try
+            {
+                string url =
+                    "http://api.nbp.pl/api/exchangerates/rates/a/"
+                    + currencyCode + "/"
+                    + startDate + "/" + endDate
+                    + "/?format=json";
+
+                using (HttpClient httpClient = new HttpClient())
+                {
+                    httpClient.Timeout =
+                        TimeSpan.FromSeconds(15);
+                    httpClient.DefaultRequestHeaders.Add(
+                        "Accept", "application/json");
+
+                    string response = httpClient
+                        .GetStringAsync(url).Result;
+
+                    JObject json = JObject.Parse(response);
+                    JArray rates = (JArray)json["rates"];
+
+                    List<string> result =
+                        new List<string>();
+
+                    foreach (JObject rate in rates)
+                    {
+                        result.Add(
+                            rate["effectiveDate"].ToString()
+                            + " | " + currencyCode
+                            + " = "
+                            + rate["mid"].ToString()
+                            + " PLN");
+                    }
+
+                    return result.Count > 0
+                        ? result.ToArray()
+                        : new string[]
+                        { "No data found!" };
+                }
+            }
+            catch (Exception ex)
+            {
+                return new string[]
+                { "Error: " + ex.Message };
+            }
+        }
+
+        public string[] GetLastDaysRates(
+            string currencyCode, int days)
+        {
+            string endDate = DateTime.Now
+                .ToString("yyyy-MM-dd");
+            string startDate = DateTime.Now
+                .AddDays(-days)
+                .ToString("yyyy-MM-dd");
+
+            return GetHistoricalRates(
+                currencyCode, startDate, endDate);
+        }
     }
 }
