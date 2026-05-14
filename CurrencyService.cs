@@ -33,7 +33,8 @@ namespace CurrencyExchangeService
 
                 using (HttpClient httpClient = new HttpClient())
                 {
-                    httpClient.Timeout = TimeSpan.FromSeconds(10);
+                    httpClient.Timeout =
+                        TimeSpan.FromSeconds(10);
                     httpClient.DefaultRequestHeaders.Add(
                         "Accept", "application/json");
 
@@ -78,7 +79,8 @@ namespace CurrencyExchangeService
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Exchange error: " + ex.Message);
+                Console.WriteLine("Exchange error: "
+                    + ex.Message);
                 return 0;
             }
         }
@@ -92,19 +94,22 @@ namespace CurrencyExchangeService
             };
         }
 
-        public bool RegisterUser(string username, string password)
+        public bool RegisterUser(
+            string username, string password)
         {
             bool success = DatabaseManager.RegisterUser(
                 username, password);
             if (success)
-                Console.WriteLine("New user registered: "
-                    + username);
+                Console.WriteLine(
+                    "New user registered: " + username);
             return success;
         }
 
-        public bool LoginUser(string username, string password)
+        public bool LoginUser(
+            string username, string password)
         {
-            return DatabaseManager.LoginUser(username, password);
+            return DatabaseManager.LoginUser(
+                username, password);
         }
 
         public double GetBalance(string username)
@@ -112,10 +117,11 @@ namespace CurrencyExchangeService
             return DatabaseManager.GetBalance(username);
         }
 
-        public bool TopUpBalance(string username, double amount)
+        public bool TopUpBalance(
+            string username, double amount)
         {
-            double currentBalance = DatabaseManager
-                .GetBalance(username);
+            double currentBalance =
+                DatabaseManager.GetBalance(username);
             double newBalance = Math.Round(
                 currentBalance + amount, 2);
 
@@ -127,8 +133,8 @@ namespace CurrencyExchangeService
                 DatabaseManager.SaveTransaction(
                     username, "TOP UP", "PLN",
                     amount, amount, newBalance);
-                Console.WriteLine(username + " topped up: "
-                    + amount + " PLN");
+                Console.WriteLine(username
+                    + " topped up: " + amount + " PLN");
             }
             return success;
         }
@@ -145,13 +151,14 @@ namespace CurrencyExchangeService
                     return "Could not get exchange rate!";
 
                 double cost = Math.Round(amount * rate, 2);
-                double currentBalance = DatabaseManager
-                    .GetBalance(username);
+                double currentBalance =
+                    DatabaseManager.GetBalance(username);
 
                 if (currentBalance < cost)
                     return "Insufficient balance! Need "
                         + cost + " PLN but have "
-                        + Math.Round(currentBalance, 2) + " PLN";
+                        + Math.Round(currentBalance, 2)
+                        + " PLN";
 
                 double newBalance = Math.Round(
                     currentBalance - cost, 2);
@@ -165,8 +172,9 @@ namespace CurrencyExchangeService
                     + amount + " " + currencyCode);
 
                 return "Success! Bought " + amount + " "
-                    + currencyCode + " for " + cost + " PLN."
-                    + " New balance: " + newBalance + " PLN";
+                    + currencyCode + " for " + cost
+                    + " PLN. New balance: "
+                    + newBalance + " PLN";
             }
             catch (Exception ex)
             {
@@ -185,9 +193,10 @@ namespace CurrencyExchangeService
                 if (rate == 0)
                     return "Could not get exchange rate!";
 
-                double earned = Math.Round(amount * rate, 2);
-                double currentBalance = DatabaseManager
-                    .GetBalance(username);
+                double earned = Math.Round(
+                    amount * rate, 2);
+                double currentBalance =
+                    DatabaseManager.GetBalance(username);
                 double newBalance = Math.Round(
                     currentBalance + earned, 2);
 
@@ -201,8 +210,9 @@ namespace CurrencyExchangeService
                     + amount + " " + currencyCode);
 
                 return "Success! Sold " + amount + " "
-                    + currencyCode + " for " + earned + " PLN."
-                    + " New balance: " + newBalance + " PLN";
+                    + currencyCode + " for " + earned
+                    + " PLN. New balance: "
+                    + newBalance + " PLN";
             }
             catch (Exception ex)
             {
@@ -210,10 +220,24 @@ namespace CurrencyExchangeService
             }
         }
 
-        public string[] GetTransactionHistory(string username)
+        public string[] GetTransactionHistory(
+            string username)
         {
             return DatabaseManager
                 .GetTransactionHistory(username);
+        }
+
+        public string[] GetTransactionsByType(
+            string username, string type)
+        {
+            return DatabaseManager
+                .GetTransactionsByType(username, type);
+        }
+
+        public string GetAccountSummary(string username)
+        {
+            return DatabaseManager
+                .GetAccountSummary(username);
         }
     }
 }

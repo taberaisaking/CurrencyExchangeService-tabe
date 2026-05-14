@@ -46,5 +46,13 @@ namespace CurrencyExchangeService
 
         [OperationContract]
         string[] GetTransactionHistory(string username);
+
+        // Lab 12 - New Methods
+        [OperationContract]
+        string[] GetTransactionsByType(
+            string username, string type);
+
+        [OperationContract]
+        string GetAccountSummary(string username);
     }
 }

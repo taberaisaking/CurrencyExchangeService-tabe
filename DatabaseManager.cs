@@ -73,10 +73,7 @@ namespace CurrencyExchangeService
                     return true;
                 }
             }
-            catch
-            {
-                return false;
-            }
+            catch { return false; }
         }
 
         public static bool LoginUser(
@@ -99,10 +96,7 @@ namespace CurrencyExchangeService
                     return (long)cmd.ExecuteScalar() > 0;
                 }
             }
-            catch
-            {
-                return false;
-            }
+            catch { return false; }
         }
 
         public static double GetBalance(string username)
@@ -195,20 +189,38 @@ namespace CurrencyExchangeService
         public static string[] GetTransactionHistory(
             string username)
         {
+            return GetTransactionsByType(username, "ALL");
+        }
+
+        public static string[] GetTransactionsByType(
+            string username, string type)
+        {
             try
             {
                 using (SQLiteConnection conn =
                     new SQLiteConnection(connectionString))
                 {
                     conn.Open();
-                    SQLiteCommand cmd = new SQLiteCommand(
-                        "SELECT Type, CurrencyCode, " +
-                        "Amount, PlnAmount, Balance, " +
-                        "CreatedAt FROM Transactions " +
-                        "WHERE Username=@u " +
-                        "ORDER BY Id DESC", conn);
+
+                    string sql = type == "ALL"
+                        ? "SELECT Type, CurrencyCode, " +
+                          "Amount, PlnAmount, Balance, " +
+                          "CreatedAt FROM Transactions " +
+                          "WHERE Username=@u " +
+                          "ORDER BY Id DESC"
+                        : "SELECT Type, CurrencyCode, " +
+                          "Amount, PlnAmount, Balance, " +
+                          "CreatedAt FROM Transactions " +
+                          "WHERE Username=@u AND Type=@t " +
+                          "ORDER BY Id DESC";
+
+                    SQLiteCommand cmd =
+                        new SQLiteCommand(sql, conn);
                     cmd.Parameters.AddWithValue(
                         "@u", username);
+                    if (type != "ALL")
+                        cmd.Parameters.AddWithValue(
+                            "@t", type);
 
                     SQLiteDataReader reader =
                         cmd.ExecuteReader();
@@ -231,13 +243,78 @@ namespace CurrencyExchangeService
                     return records.Count > 0
                         ? records.ToArray()
                         : new string[]
-                        { "No transactions yet!" };
+                        { "No transactions found!" };
                 }
             }
             catch (Exception ex)
             {
                 return new string[]
                 { "Error: " + ex.Message };
+            }
+        }
+
+        public static string GetAccountSummary(
+            string username)
+        {
+            try
+            {
+                using (SQLiteConnection conn =
+                    new SQLiteConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // Get balance
+                    SQLiteCommand balCmd =
+                        new SQLiteCommand(
+                        "SELECT Balance FROM Users " +
+                        "WHERE Username=@u", conn);
+                    balCmd.Parameters.AddWithValue(
+                        "@u", username);
+                    double balance = Convert.ToDouble(
+                        balCmd.ExecuteScalar());
+
+                    // Get transaction counts
+                    SQLiteCommand countCmd =
+                        new SQLiteCommand(
+                        "SELECT COUNT(*) FROM Transactions " +
+                        "WHERE Username=@u", conn);
+                    countCmd.Parameters.AddWithValue(
+                        "@u", username);
+                    long total = (long)
+                        countCmd.ExecuteScalar();
+
+                    // Get buy count
+                    SQLiteCommand buyCmd =
+                        new SQLiteCommand(
+                        "SELECT COUNT(*) FROM Transactions " +
+                        "WHERE Username=@u AND Type='BUY'",
+                        conn);
+                    buyCmd.Parameters.AddWithValue(
+                        "@u", username);
+                    long buys = (long)
+                        buyCmd.ExecuteScalar();
+
+                    // Get sell count
+                    SQLiteCommand sellCmd =
+                        new SQLiteCommand(
+                        "SELECT COUNT(*) FROM Transactions " +
+                        "WHERE Username=@u AND Type='SELL'",
+                        conn);
+                    sellCmd.Parameters.AddWithValue(
+                        "@u", username);
+                    long sells = (long)
+                        sellCmd.ExecuteScalar();
+
+                    return "Account: " + username
+                        + " | Balance: " + balance + " PLN"
+                        + " | Total Transactions: " + total
+                        + " | Buys: " + buys
+                        + " | Sells: " + sells;
+                }
+            }
+            catch (Exception ex)
+            {
+                return "Error: " + ex.Message;
             }
         }
     }

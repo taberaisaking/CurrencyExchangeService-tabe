@@ -9,12 +9,7 @@ namespace CurrencyExchangeService
     {
         static void Main(string[] args)
         {
-            // Delete old database to start fresh
-            if (File.Exists("CurrencyExchange.db"))
-            {
-                File.Delete("CurrencyExchange.db");
-                Console.WriteLine("Old database deleted!");
-            }
+            
 
             // Initialize fresh database
             DatabaseManager.InitializeDatabase();
