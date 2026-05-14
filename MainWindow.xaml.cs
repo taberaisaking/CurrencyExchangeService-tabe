@@ -56,6 +56,16 @@ namespace CurrencyExchangeWPF
 
         [OperationContract]
         string GetAccountSummary(string username);
+
+        [OperationContract]
+        string[] GetHistoricalRates(
+            string currencyCode,
+            string startDate,
+            string endDate);
+
+        [OperationContract]
+        string[] GetLastDaysRates(
+            string currencyCode, int days);
     }
 
     public partial class MainWindow : Window
@@ -107,11 +117,13 @@ namespace CurrencyExchangeWPF
                     FromCurrencyCombo.Items.Add(currency);
                     ToCurrencyCombo.Items.Add(currency);
                     BuySellCurrencyCombo.Items.Add(currency);
+                    HistoryCurrencyCombo.Items.Add(currency);
                 }
 
                 FromCurrencyCombo.SelectedIndex = 1;
                 ToCurrencyCombo.SelectedIndex = 0;
                 BuySellCurrencyCombo.SelectedIndex = 0;
+                HistoryCurrencyCombo.SelectedIndex = 0;
             }
             catch (Exception ex)
             {
@@ -211,11 +223,8 @@ namespace CurrencyExchangeWPF
                         "Welcome " + username + "!";
                     BalanceText.Text = "Balance: "
                         + balance + " PLN";
-
-                    // Show account summary
-                    string summary =
+                    SummaryText.Text =
                         client.GetAccountSummary(username);
-                    SummaryText.Text = summary;
                 }
                 else
                 {
@@ -227,7 +236,8 @@ namespace CurrencyExchangeWPF
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Login error: " + ex.Message);
+                MessageBox.Show("Login error: "
+                    + ex.Message);
             }
         }
 
@@ -343,7 +353,8 @@ namespace CurrencyExchangeWPF
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Buy error: " + ex.Message);
+                MessageBox.Show("Buy error: "
+                    + ex.Message);
             }
         }
 
@@ -389,7 +400,8 @@ namespace CurrencyExchangeWPF
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Sell error: " + ex.Message);
+                MessageBox.Show("Sell error: "
+                    + ex.Message);
             }
         }
 
@@ -404,8 +416,8 @@ namespace CurrencyExchangeWPF
                     return;
                 }
 
-                string filter = (FilterCombo.SelectedItem as
-                    System.Windows.Controls.ComboBoxItem)
+                string filter = (FilterCombo.SelectedItem
+                    as System.Windows.Controls.ComboBoxItem)
                     ?.Content?.ToString() ?? "ALL";
 
                 HistoryListBox.Items.Clear();
@@ -421,6 +433,37 @@ namespace CurrencyExchangeWPF
             catch (Exception ex)
             {
                 MessageBox.Show("History error: "
+                    + ex.Message);
+            }
+        }
+
+        private async void HistoricalRatesButton_Click(
+            object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string currency = HistoryCurrencyCombo
+                    .SelectedItem.ToString();
+
+                string daysStr = (DaysCombo.SelectedItem
+                    as System.Windows.Controls.ComboBoxItem)
+                    ?.Content?.ToString() ?? "7";
+                int days = int.Parse(daysStr);
+
+                HistoricalRatesListBox.Items.Clear();
+                HistoricalRatesListBox.Items.Add(
+                    "Loading historical rates...");
+
+                string[] rates = await Task.Run(() =>
+                    client.GetLastDaysRates(currency, days));
+
+                HistoricalRatesListBox.Items.Clear();
+                foreach (string rate in rates)
+                    HistoricalRatesListBox.Items.Add(rate);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Historical rates error: "
                     + ex.Message);
             }
         }
