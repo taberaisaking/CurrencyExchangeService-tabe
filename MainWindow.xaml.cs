@@ -88,8 +88,9 @@ namespace CurrencyExchangeWPF
                 EndpointAddress address = new EndpointAddress(
                     "http://localhost:8080/CurrencyExchangeService");
                 BasicHttpBinding binding = new BasicHttpBinding();
-                binding.SendTimeout = TimeSpan.FromSeconds(30);
-                binding.ReceiveTimeout = TimeSpan.FromSeconds(30);
+                binding.SendTimeout = TimeSpan.FromSeconds(60);
+                binding.ReceiveTimeout = TimeSpan.FromSeconds(60);
+                binding.MaxReceivedMessageSize = 2147483647;
                 ChannelFactory<ICurrencyService> factory =
                     new ChannelFactory<ICurrencyService>(
                         binding, address);
@@ -97,8 +98,13 @@ namespace CurrencyExchangeWPF
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Cannot connect to service: "
-                    + ex.Message);
+                MessageBox.Show(
+                    "Cannot connect to service!\n\n" +
+                    "Make sure CurrencyExchangeService " +
+                    "is running.\n\n" + ex.Message,
+                    "Connection Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 
@@ -183,7 +189,8 @@ namespace CurrencyExchangeWPF
                     AccountStatusText.Foreground =
                         System.Windows.Media.Brushes.Green;
                     AccountStatusText.Text =
-                        "Registration successful! Please login.";
+                        "Registration successful! " +
+                        "Please login.";
                 }
                 else
                 {
@@ -266,7 +273,11 @@ namespace CurrencyExchangeWPF
                     SummaryText.Text =
                         client.GetAccountSummary(
                             loggedInUser);
-                    MessageBox.Show("Top up successful!");
+                    MessageBox.Show(
+                        "Top up successful!",
+                        "Success",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
@@ -455,7 +466,8 @@ namespace CurrencyExchangeWPF
                     "Loading historical rates...");
 
                 string[] rates = await Task.Run(() =>
-                    client.GetLastDaysRates(currency, days));
+                    client.GetLastDaysRates(
+                        currency, days));
 
                 HistoricalRatesListBox.Items.Clear();
                 foreach (string rate in rates)
@@ -463,7 +475,8 @@ namespace CurrencyExchangeWPF
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Historical rates error: "
+                MessageBox.Show(
+                    "Historical rates error: "
                     + ex.Message);
             }
         }
