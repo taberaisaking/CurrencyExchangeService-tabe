@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.ServiceModel;
 using System.ServiceModel.Description;
 
@@ -9,11 +8,19 @@ namespace CurrencyExchangeService
     {
         static void Main(string[] args)
         {
-            
+            Console.WriteLine("======================================");
+            Console.WriteLine(" Currency Exchange Office System      ");
+            Console.WriteLine(" Network Application Development      ");
+            Console.WriteLine("======================================");
+            Console.WriteLine();
 
-            // Initialize fresh database
+            // Initialize database
+            Console.WriteLine("Initializing database...");
             DatabaseManager.InitializeDatabase();
+            Console.WriteLine("Database ready! ✓");
+            Console.WriteLine();
 
+            // Start WCF Service
             Uri baseAddress = new Uri(
                 "http://localhost:8080/CurrencyExchangeService");
 
@@ -25,22 +32,37 @@ namespace CurrencyExchangeService
             smb.HttpGetEnabled = true;
             host.Description.Behaviors.Add(smb);
 
+            BasicHttpBinding binding = new BasicHttpBinding();
+            binding.SendTimeout = TimeSpan.FromSeconds(60);
+            binding.ReceiveTimeout = TimeSpan.FromSeconds(60);
+
             host.AddServiceEndpoint(
                 typeof(ICurrencyService),
-                new BasicHttpBinding(),
-                "");
+                binding, "");
 
-            host.Open();
-
-            Console.WriteLine("======================================");
-            Console.WriteLine(" CurrencyExchange WCF Service Running ");
-            Console.WriteLine("======================================");
-            Console.WriteLine("URL: http://localhost:8080/CurrencyExchangeService");
-            Console.WriteLine("Database: Connected ✓");
-            Console.WriteLine("Press ENTER to stop the service...");
-            Console.ReadLine();
-
-            host.Close();
+            try
+            {
+                host.Open();
+                Console.WriteLine("Service Status: Running ✓");
+                Console.WriteLine("URL: http://localhost:8080" +
+                    "/CurrencyExchangeService");
+                Console.WriteLine("NBP API: Connected ✓");
+                Console.WriteLine();
+                Console.WriteLine("Press ENTER to stop...");
+                Console.ReadLine();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Service error: "
+                    + ex.Message);
+                Console.ReadLine();
+            }
+            finally
+            {
+                if (host.State == CommunicationState.Opened)
+                    host.Close();
+                Console.WriteLine("Service stopped.");
+            }
         }
     }
 }
