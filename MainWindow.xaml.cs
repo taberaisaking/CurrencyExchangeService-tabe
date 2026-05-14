@@ -49,6 +49,13 @@ namespace CurrencyExchangeWPF
 
         [OperationContract]
         string[] GetTransactionHistory(string username);
+
+        [OperationContract]
+        string[] GetTransactionsByType(
+            string username, string type);
+
+        [OperationContract]
+        string GetAccountSummary(string username);
     }
 
     public partial class MainWindow : Window
@@ -128,7 +135,8 @@ namespace CurrencyExchangeWPF
                     double rate = await Task.Run(() =>
                         client.GetExchangeRate(currency));
                     RatesListBox.Items.Add(
-                        "1 " + currency + " = " + rate + " PLN");
+                        "1 " + currency + " = "
+                        + rate + " PLN");
                 }
             }
             catch (Exception ex)
@@ -143,7 +151,8 @@ namespace CurrencyExchangeWPF
         {
             try
             {
-                string username = UsernameTextBox.Text.Trim();
+                string username =
+                    UsernameTextBox.Text.Trim();
                 string password = PasswordBox.Password;
 
                 if (string.IsNullOrEmpty(username) ||
@@ -174,7 +183,8 @@ namespace CurrencyExchangeWPF
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Registration error: " + ex.Message);
+                MessageBox.Show("Registration error: "
+                    + ex.Message);
             }
         }
 
@@ -183,7 +193,8 @@ namespace CurrencyExchangeWPF
         {
             try
             {
-                string username = UsernameTextBox.Text.Trim();
+                string username =
+                    UsernameTextBox.Text.Trim();
                 string password = PasswordBox.Password;
 
                 bool success = client.LoginUser(
@@ -192,13 +203,19 @@ namespace CurrencyExchangeWPF
                 if (success)
                 {
                     loggedInUser = username;
-                    double balance = client.GetBalance(username);
+                    double balance =
+                        client.GetBalance(username);
                     AccountStatusText.Foreground =
                         System.Windows.Media.Brushes.Green;
                     AccountStatusText.Text =
                         "Welcome " + username + "!";
                     BalanceText.Text = "Balance: "
                         + balance + " PLN";
+
+                    // Show account summary
+                    string summary =
+                        client.GetAccountSummary(username);
+                    SummaryText.Text = summary;
                 }
                 else
                 {
@@ -232,16 +249,20 @@ namespace CurrencyExchangeWPF
 
                 if (success)
                 {
-                    double balance = client.GetBalance(
-                        loggedInUser);
+                    double balance =
+                        client.GetBalance(loggedInUser);
                     BalanceText.Text = "Balance: "
                         + balance + " PLN";
+                    SummaryText.Text =
+                        client.GetAccountSummary(
+                            loggedInUser);
                     MessageBox.Show("Top up successful!");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Top up error: " + ex.Message);
+                MessageBox.Show("Top up error: "
+                    + ex.Message);
             }
         }
 
@@ -275,7 +296,8 @@ namespace CurrencyExchangeWPF
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Exchange error: " + ex.Message);
+                MessageBox.Show("Exchange error: "
+                    + ex.Message);
             }
         }
 
@@ -310,10 +332,13 @@ namespace CurrencyExchangeWPF
 
                 if (result.StartsWith("Success"))
                 {
-                    double balance = client.GetBalance(
-                        loggedInUser);
+                    double balance =
+                        client.GetBalance(loggedInUser);
                     BalanceText.Text = "Balance: "
                         + balance + " PLN";
+                    SummaryText.Text =
+                        client.GetAccountSummary(
+                            loggedInUser);
                 }
             }
             catch (Exception ex)
@@ -353,10 +378,13 @@ namespace CurrencyExchangeWPF
 
                 if (result.StartsWith("Success"))
                 {
-                    double balance = client.GetBalance(
-                        loggedInUser);
+                    double balance =
+                        client.GetBalance(loggedInUser);
                     BalanceText.Text = "Balance: "
                         + balance + " PLN";
+                    SummaryText.Text =
+                        client.GetAccountSummary(
+                            loggedInUser);
                 }
             }
             catch (Exception ex)
@@ -376,18 +404,24 @@ namespace CurrencyExchangeWPF
                     return;
                 }
 
+                string filter = (FilterCombo.SelectedItem as
+                    System.Windows.Controls.ComboBoxItem)
+                    ?.Content?.ToString() ?? "ALL";
+
                 HistoryListBox.Items.Clear();
-                string[] history = client.GetTransactionHistory(
-                    loggedInUser);
+                string[] history = filter == "ALL"
+                    ? client.GetTransactionHistory(
+                        loggedInUser)
+                    : client.GetTransactionsByType(
+                        loggedInUser, filter);
 
                 foreach (string record in history)
-                {
                     HistoryListBox.Items.Add(record);
-                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("History error: " + ex.Message);
+                MessageBox.Show("History error: "
+                    + ex.Message);
             }
         }
     }
