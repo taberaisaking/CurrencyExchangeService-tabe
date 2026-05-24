@@ -2,21 +2,36 @@
 
 ## Course name: Network Application Development
 
-## Project title: Currency Exchange WCF Service
+## Project title: Currency Exchange Office System
 
-## Author name: [Tabe Raisa Ayuk-Agbor]
+## Author name: Tabe Raisa Ayuk-Agbor
 
-## Student ID: [73657]
+## Student ID: 73657
 
 ## Description
-A WCF-based network application that simulates a currency 
-exchange office. Built using the .NET platform. The service 
-exposes exchange rate methods consumed by a console client.
+A WCF-based network application simulating a 
+currency exchange office. Built using .NET Framework.
+The system includes:
+- WCF Web Service with NBP API integration
+- WPF Client Application
+- SQLite Database
+- User account management
+- Buy/Sell currency transactions
+- Transaction history
+- Historical exchange rates
 
-## How to run
+## How to Run
 1. Open CurrencyExchangeService.sln in Visual Studio 2022
-2. Right-click the Solution and set Multiple Startup Projects
-3. Set both projects to Start
-4. Press F5
-5. The service starts on http://localhost:8080/CurrencyExchangeService
-6. The client connects and displays exchange rates
+2. Run as Administrator
+3. Right-click Solution → Properties → Multiple Startup Projects
+4. Set CurrencyExchangeService → Start
+5. Set CurrencyExchangeWPF → Start
+6. Press F5
+7. Register a new user and login
+
+## Technologies Used
+- .NET Framework 4.8
+- WCF (Windows Communication Foundation)
+- WPF (Windows Presentation Foundation)
+- SQLite Database
+- NBP API (National Bank of Poland)
