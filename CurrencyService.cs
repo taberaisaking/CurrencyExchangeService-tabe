@@ -1,4 +1,5 @@
-﻿using System;
+// Version 1.1 - Improved error handling for NBP API timeout scenarios
+using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using Newtonsoft.Json.Linq;
