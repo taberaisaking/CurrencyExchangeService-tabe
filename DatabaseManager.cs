@@ -1,4 +1,5 @@
-﻿using System;
+// Database path: AppData/Local for user-specific storage
+using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
 
