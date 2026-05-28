@@ -1,3 +1,4 @@
+// Service contract version 1.2 - includes historical rate operations
 ﻿using System.ServiceModel;
 
 namespace CurrencyExchangeService
