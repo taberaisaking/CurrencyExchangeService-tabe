@@ -1,3 +1,4 @@
+// Entry point: hosts WCF service on port 8080
 ﻿using System;
 using System.ServiceModel;
 using System.ServiceModel.Description;
