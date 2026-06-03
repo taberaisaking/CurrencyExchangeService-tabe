@@ -1,3 +1,4 @@
+// WPF Client v1.3 - handles login, exchange, history views
 ﻿using System;
 using System.ServiceModel;
 using System.Threading.Tasks;
