@@ -35,3 +35,11 @@ The system includes:
 - WPF (Windows Presentation Foundation)
 - SQLite Database
 - NBP API (National Bank of Poland)
+
+## Testing
+All features tested manually:
+- User registration and login ✅
+- Live exchange rate retrieval ✅
+- Currency buy/sell operations ✅
+- Transaction history display ✅
+- Historical rates chart ✅
