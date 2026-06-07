@@ -43,7 +43,6 @@ All features tested manually:
 - Currency buy/sell operations ✅
 - Transaction history display ✅
 - Historical rates chart ✅
-- Historical rates chart ✅
 
 ## Known Limitations
 - Requires internet connection for NBP API
