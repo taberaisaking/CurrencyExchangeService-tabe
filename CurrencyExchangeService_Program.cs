@@ -1,3 +1,4 @@
+// Client program entry point - connects to WCF service
 ﻿using System;
 using System.Net.Http;
 using System.ServiceModel;
